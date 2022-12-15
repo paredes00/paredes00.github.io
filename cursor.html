@@ -139,9 +139,10 @@
         .triangle.down { rotate: 180deg; }
 
         .touch-controls {
-            position: fixed;
+            position: absolute;
             bottom: 20px;
             margin-left: 20px;
+            z-index: 1;
         }
         .spin {
             animation: 10s linear spin infinite;
@@ -276,11 +277,8 @@
     }
 
     class FollowCursor extends Cursor {
-        constructor(isHidden) {
-            super({
-                width: 0,
-                height: 0
-            });
+        constructor(isHidden, options) {
+            super(options);
 
             if (isHidden) {
                 setTimeout(() => {
@@ -289,6 +287,8 @@
             }
 
             if (isPhone) {
+                this.x = Math.random() * this.width;
+                this.y = Math.random() * this.height;
                 this.el.classList.add("bounce");
             }
         }
@@ -297,6 +297,13 @@
             if (e.clientX === undefined || e.clientY === undefined) {
                 this.x += e.movementX;
                 this.y += e.movementY;
+
+                // prevent the cursor going off-screen in the corners
+                // ...now its playable on mobile
+                if (this.x < 0) { this.x = 0; }
+                if (this.y < 0) { this.y = 0; }
+                if (this.y > this.height) { this.y = this.height; }
+                if (this.x > this.width) { this.x = this.width; }
             } else {
                 this.x = e.clientX;
                 this.y = e.clientY;
@@ -395,7 +402,10 @@
                 this.cursors.push(cursor);
             }
 
-            this.followCursor = new FollowCursor(this.hideCursor);
+            this.followCursor = new FollowCursor(this.hideCursor, {
+                width: bbox.width,
+                height: bbox.height
+            });
             this.movables.push(this.followCursor);
         }
 
@@ -418,6 +428,9 @@
         doPenalty() {
             resetGame();
             window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+            setTimeout(() => {
+                window.location.reload();
+            }, 100)
         }
 
         doObjective() {
@@ -687,6 +700,7 @@
     });
 
     function resetGame() {
+        isPhone = false;
         levels[currentLevel]?.clean();
         currentLevel = 0;
         renderLevel();
