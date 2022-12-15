@@ -152,25 +152,25 @@
     </style>
 </head>
 <body>
-    <div class="touch-controls" style="display: none">
-        <table>
-            <tr>
-                <td></td>
-                <td><div class="triangle up"></div></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td><div class="triangle left"></div></td>
-                <td><div class="circle"></div>
-                </td><td><div class="triangle right"></div></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td><div class="triangle down"></div></td>
-                <td></td>
-            </tr>
-        </table>
-    </div>
+<div class="touch-controls" style="display: none">
+    <table>
+        <tr>
+            <td></td>
+            <td><div class="triangle up"></div></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><div class="triangle left"></div></td>
+            <td><div class="circle"></div>
+            </td><td><div class="triangle right"></div></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td><div class="triangle down"></div></td>
+            <td></td>
+        </tr>
+    </table>
+</div>
 <span class="level-display"></span>
 <script>
     class Movable {
@@ -184,9 +184,11 @@
         }
 
         rotate(v) {
-            v.x = v.x * Math.cos(this.angle) - v.y * Math.sin(this.angle);
-            v.y = v.x * Math.sin(this.angle) + v.y * Math.cos(this.angle);
+            const { x, y } = v;
+            v.x = x * Math.cos(this.angle) - y * Math.sin(this.angle);
+            v.y = x * Math.sin(this.angle) + y * Math.cos(this.angle);
         }
+
         scale(v) {
             v.x *= this.factor;
             v.y *= this.factor;
@@ -212,7 +214,7 @@
             throw new Error("UpdatePosition method not implemented");
         }
     }
-    
+
     class RandomMotion extends Movable {
         constructor(el, options) {
             super(options);
@@ -283,7 +285,7 @@
             if (isHidden) {
                 setTimeout(() => {
                     this.el.style.opacity = "0";
-                }, 2000);
+                }, isPhone ? 2000 : 0);
             }
 
             if (isPhone) {
@@ -325,6 +327,7 @@
             this.scene = scene;
             this.elements = [];
             this.movables = [];
+            this.cursors = [];
 
             this.isActive = true;
             this.followCursor = false;
@@ -380,14 +383,16 @@
         addCursors() {
             const bbox = document.body.getBoundingClientRect();
             for (let i = 0; i < this.numCursors; i++) {
-                this.movables.push(new Cursor({
+                const cursor = new Cursor({
                     width: bbox.width,
                     height: bbox.height,
                     angle: this.angle,
                     minFactor: this.minFactor,
                     maxFactor: this.maxFactor,
                     partyMode: this.partyMode
-                }));
+                });
+                this.movables.push(cursor);
+                this.cursors.push(cursor);
             }
 
             this.followCursor = new FollowCursor(this.hideCursor);
@@ -427,6 +432,14 @@
                 this.doObjective();
             } else if (clickedPenalty) {
                 this.doPenalty();
+            }
+        }
+
+        recomputeBounds() {
+            const bbox = document.body.getBoundingClientRect();
+            for (const el of this.cursors) {
+                el.width = bbox.width;
+                el.height = bbox.height;
             }
         }
     }
@@ -561,7 +574,7 @@
                     angle: 360,
                     minFactor: .6,
                     maxFactor: .8,
-                    rotationFactor: 0.2
+                    rotationFactor: 0.5
                 }));
 
                 const bbox = document.body.getBoundingClientRect();
@@ -571,7 +584,7 @@
                     angle: -40,
                     minFactor: .2,
                     maxFactor: .35,
-                    rotationFactor: 0.05
+                    rotationFactor: 0.1
                 }));
             },
             onRender: () => {
@@ -602,7 +615,7 @@
                     angle: -40,
                     minFactor: .2,
                     maxFactor: .35,
-                    rotationFactor: 0.15
+                    rotationFactor: 0.25
                 }));
             }
         }),
@@ -667,6 +680,10 @@
 
     addEventListener('contextmenu', (event) => {
         event.preventDefault();
+    });
+
+    addEventListener("resize", (event) => {
+        levels[currentLevel].recomputeBounds();
     });
 
     function resetGame() {
