@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        cursor {
+            background-image: url("cursor.png");
+            background-size: 12px;
+            background-repeat: no-repeat;
+            height: 20px;
+            width: 20px;
+            display: block;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+
+            font-family: sans-serif;
+        }
+
+
+        * {
+            cursor: none;
+        }
+
+        body.mobile > cursor {
+            transition: all 0.2s linear 0s;
+        }
+        .btn {
+            border: none;
+            background-color: #a800c9;
+            padding: 4px 12px;
+            border-radius: 4px;
+            color: white;
+            user-select: none;
+
+            display: block;
+
+            position: absolute;
+        }
+
+        .btn.big {
+            font-size: 3em;
+        }
+        .btn.medium {
+            font-size: 2em;
+        }
+        .btn.small {
+            font-size: 1em;
+        }
+
+        .btn.center {
+            margin-left: calc(50vw - 110px); /* its close enough */
+            margin-top: calc(50vh - 20px);
+        }
+
+        .close-btn {
+            width: 20px;
+            height: 20px;
+            padding: 0 1px 1px 0px;
+            margin: 0;
+            border: 0;
+            font-weight: bold;
+            font-size: .8em;
+            position: absolute;
+        }
+
+        .level-display {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            padding: 2px 6px;
+            background-color: #2f3136;
+            color: white;
+        }
+
+        .annoying-box {
+            background-image: url("da.png");
+            background-size: 300px;
+            width: 300px;
+            height: 300px;
+            position: absolute;
+        }
+        .offset-box {
+            margin-left: -150px;
+            margin-top: -150px;
+        }
+
+        .bounce {
+            animation: bounce 2s ease 1s;
+        }
+
+        @keyframes bounce {
+            0% { transform: scale(1.0); }
+            25% { transform: scale(1.25); filter: drop-shadow(0 0 4px red) }
+            40% { transform: rotate(24deg) scale(1.2); }
+            50% { transform: rotate(-24deg) scale(1.2); }
+            60% { transform: rotate(24deg) scale(1.2); }
+            75% { transform: rotate(0deg) scale(1.2); filter: none }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0); }
+            50% { transform: rotate(180deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .triangle {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 50px solid #313131;
+        }
+
+        td {
+            width: 54px;
+            height: 54px;
+        }
+
+        .circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #313131;
+            margin-left: -4px;
+        }
+
+        .triangle.up { border-bottom: 50px solid #6a24c3; }
+        .triangle.left { rotate: -90deg; }
+        .triangle.right { rotate: 90deg; }
+        .triangle.down { rotate: 180deg; }
+
+        .touch-controls {
+            position: fixed;
+            bottom: 20px;
+            margin-left: 20px;
+        }
+        .spin {
+            animation: 10s linear spin infinite;
+        }
+        .spin-fast {
+            animation: 5s linear spin infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="touch-controls" style="display: none">
+        <table>
+            <tr>
+                <td></td>
+                <td><div class="triangle up"></div></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td><div class="triangle left"></div></td>
+                <td><div class="circle"></div>
+                </td><td><div class="triangle right"></div></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><div class="triangle down"></div></td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+<span class="level-display"></span>
+<script>
+    class Movable {
+        constructor({width, height, angle = 0, minFactor = 0.8, maxFactor = 1.2}) {
+            this.width = width;
+            this.height = height;
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.angle = (Math.random() * angle) * (Math.PI / 180);
+            this.factor = minFactor + Math.random() * (maxFactor - minFactor);
+        }
+
+        rotate(v) {
+            v.x = v.x * Math.cos(this.angle) - v.y * Math.sin(this.angle);
+            v.y = v.x * Math.sin(this.angle) + v.y * Math.cos(this.angle);
+        }
+        scale(v) {
+            v.x *= this.factor;
+            v.y *= this.factor;
+        }
+
+        move(e) {
+            const v = { x: e.movementX, y: e.movementY };
+
+            this.rotate(v);
+            this.scale(v);
+
+            this.x += v.x
+            this.y += v.y
+
+            if (this.x < -20) { this.x += this.width; }
+            if (this.y < -20) { this.y += this.height; }
+            this.x = this.x % this.width;
+            this.y = this.y % this.height;
+        }
+        remove(e) { }
+
+        updatePosition() {
+            throw new Error("UpdatePosition method not implemented");
+        }
+    }
+    
+    class RandomMotion extends Movable {
+        constructor(el, options) {
+            super(options);
+            this.el = el;
+        }
+
+        updatePosition() {
+            this.el.style.left = this.x + "px";
+            this.el.style.top = this.y + "px";
+        }
+    }
+
+    class RandomRoll extends RandomMotion {
+        constructor(el, options) {
+            super(el, options);
+            this.el = el;
+            this.rot = 0;
+            this.rotationFactor = options.rotationFactor;
+        }
+
+        move(e) {
+            const total = e.movementX + e.movementY;
+
+            this.rot += total * this.rotationFactor;
+
+            super.move(e);
+        }
+
+        updatePosition() {
+            this.el.style.rotate = this.rot + "deg";
+            super.updatePosition();
+        }
+    }
+
+    class Cursor extends RandomMotion {
+        constructor(options) {
+            super(document.createElement('cursor'), {
+                ...options,
+                width: options.width + 20,
+                height: options.height + 20
+            });
+
+            if (options.partyMode) {
+                const colours = ["#f5372a", "#f58f2a", "#53f52a", "#2af5da", "#2a3bf5", "#f52aee", "#970cc9", "#f5a9b8", "#5bcefa"];
+                this.el.style.scale = "" + (.7 + Math.random() * 2);
+
+                const col = colours[Math.floor(Math.random() * colours.length)];
+                this.el.style.filter = "drop-shadow(0 0 3px " + col + ")";
+                this.el.style.rotate = Math.random() * 360 + "deg";
+            }
+
+            this.updatePosition();
+            document.body.appendChild(this.el);
+        }
+
+        remove() {
+            this.el.remove();
+        }
+    }
+
+    class FollowCursor extends Cursor {
+        constructor(isHidden) {
+            super({
+                width: 0,
+                height: 0
+            });
+
+            if (isHidden) {
+                setTimeout(() => {
+                    this.el.style.opacity = "0";
+                }, 2000);
+            }
+
+            if (isPhone) {
+                this.el.classList.add("bounce");
+            }
+        }
+
+        move(e) {
+            if (e.clientX === undefined || e.clientY === undefined) {
+                this.x += e.movementX;
+                this.y += e.movementY;
+            } else {
+                this.x = e.clientX;
+                this.y = e.clientY;
+            }
+        }
+
+        isOverButton(target) {
+            const { x, y } = this.el.getBoundingClientRect();
+            const bounds = target.getBoundingClientRect();
+
+            const xIn = x > bounds.x && x < (bounds.x + bounds.width);
+            const yIn = y > bounds.y && y < (bounds.y + bounds.height);
+
+            return xIn && yIn;
+        }
+    }
+
+    class Level {
+        constructor({cursors, angle, scene, minFactor = 0.8, maxFactor = 1.2,
+                        hideCursor = false, partyMode = false, name = "", onRender = false}) {
+            this.name = name;
+            this.numCursors = cursors;
+            this.angle = angle;
+            this.minFactor = minFactor;
+            this.maxFactor = maxFactor;
+            this.hideCursor = hideCursor;
+            this.partyMode = partyMode;
+            this.scene = scene;
+            this.elements = [];
+            this.movables = [];
+
+            this.isActive = true;
+            this.followCursor = false;
+
+            this.objectiveTarget = false;
+            this.penaltyTarget = false;
+            this.onRender = onRender;
+        }
+        render() {
+            this.scene(this.elements, (el) => {
+                this.objectiveTarget = el;
+                el.addEventListener("click", (e) => {
+                    if (isPhone) { return; }
+
+                    e.stopPropagation();
+                    this.doObjective();
+                });
+            }, (el) => {
+                this.penaltyTarget = el;
+                el.addEventListener('click', () => {
+                    if (isPhone) { return; }
+                    this.doPenalty();
+                })
+            }, (el) => {
+                this.movables.push(el);
+            });
+
+            for (const el of this.elements) {
+                document.body.append(el);
+            }
+
+            this.addCursors();
+
+            const parent = this;
+            function frame() {
+                if (!parent.isActive) {
+                    return;
+                }
+                for (const el of parent.movables) {
+                    el.updatePosition();
+                }
+
+                requestAnimationFrame(frame);
+
+            }
+            requestAnimationFrame(frame);
+
+            if (this.onRender) {
+                this.onRender();
+            }
+        }
+
+        addCursors() {
+            const bbox = document.body.getBoundingClientRect();
+            for (let i = 0; i < this.numCursors; i++) {
+                this.movables.push(new Cursor({
+                    width: bbox.width,
+                    height: bbox.height,
+                    angle: this.angle,
+                    minFactor: this.minFactor,
+                    maxFactor: this.maxFactor,
+                    partyMode: this.partyMode
+                }));
+            }
+
+            this.followCursor = new FollowCursor(this.hideCursor);
+            this.movables.push(this.followCursor);
+        }
+
+        updateCursors(event) {
+            for (const cursor of this.movables) {
+                cursor.move(event);
+            }
+        }
+
+        clean() {
+            for (const el of this.elements) {
+                el.remove();
+            }
+            for (const el of this.movables) {
+                el.remove();
+            }
+            this.isActive = false;
+        }
+
+        doPenalty() {
+            resetGame();
+            window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        }
+
+        doObjective() {
+            advanceLevel();
+        }
+
+        click() {
+            const clickedObjective = this.objectiveTarget && this.followCursor.isOverButton(this.objectiveTarget);
+            const clickedPenalty = this.penaltyTarget && this.followCursor.isOverButton(this.penaltyTarget);
+
+            if (clickedObjective) {
+                this.doObjective();
+            } else if (clickedPenalty) {
+                this.doPenalty();
+            }
+        }
+    }
+
+    function toHtml(str) {
+        const el = document.createElement("template");
+        el.innerHTML = str;
+        return el.content.firstChild;
+    }
+
+    function randomPos(el, margin = 10) {
+        const left = margin + Math.random() * (100 - 2 * margin);
+        const top = margin + Math.random() * (100 - 2 * margin);
+        el.style.left = left + "%";
+        el.style.top = top + "%";
+    }
+
+    function annoyingBox(elements, markObjective, markPenalty) {
+        const adBox = toHtml("<div class='annoying-box offset-box'></div>");
+        const btn = toHtml("<button class='close-btn'>&#9587;</button>");
+        adBox.appendChild(btn);
+
+        elements.push(adBox);
+        markObjective(btn);
+        markPenalty(adBox);
+
+        return { adBox, btn };
+    }
+
+    const levels = [
+        new Level({
+            name: "Button",
+            cursors: 0,
+            angle: 0,
+            scene: (elements, markObjective) => {
+                const btn = toHtml("<button class='btn big center'>Click me!</button>");
+                elements.push(btn);
+                markObjective(btn);
+            }
+        }),
+        new Level({
+            name: "Cursors",
+            cursors: 20,
+            angle: 0,
+            scene: (elements, markObjective) => {
+                const btn = toHtml("<button class='btn medium'>Click me!</button>");
+                randomPos(btn);
+                elements.push(btn);
+                markObjective(btn);
+            }
+        }),
+        new Level({
+            name: "Jitter",
+            cursors: 100,
+            angle: 20,
+            scene: (elements, markObjective) => {
+                const btn = toHtml("<button class='btn small'>Click me!</button>");
+                randomPos(btn);
+                elements.push(btn);
+                markObjective(btn);
+            }
+        }),
+        new Level({
+            name: "Sea",
+            cursors: 400,
+            angle: 90,
+            scene: (elements, markObjective) => {
+                const btn = toHtml("<button class='btn small'>Click me!</button>");
+                randomPos(btn);
+                elements.push(btn);
+                markObjective(btn);
+            }
+        }),
+        new Level({
+            name: "Advertising",
+            cursors: 800,
+            angle: 360,
+            scene: (elements, markObjective, markPenalty) => {
+                const { adBox, btn } = annoyingBox(elements, markObjective, markPenalty);
+                randomPos(adBox, 20);
+            }
+        }),
+        new Level({
+            name: "Chase",
+            cursors: 1000,
+            angle: 360,
+            scene: (elements, markObjective, markPenalty, randomMotion) => {
+                const { adBox, btn } = annoyingBox(elements, markObjective, markPenalty);
+                randomPos(adBox, 20);
+                randomMotion(new RandomMotion(btn, {
+                    width: 300,
+                    height: 300,
+                    angle: 90,
+                    minFactor: .2,
+                    maxFactor: .35
+                }));
+            }
+        }),
+        new Level({
+            name: "Evasive",
+            cursors: 1000,
+            angle: 360,
+            scene: (elements, markObjective, markPenalty, randomMotion) => {
+                const { adBox, btn } = annoyingBox(elements, markObjective, markPenalty);
+                randomMotion(new RandomMotion(btn, {
+                    width: 300,
+                    height: 300,
+                    angle: 360,
+                    minFactor: .6,
+                    maxFactor: .8
+                }));
+
+                const bbox = document.body.getBoundingClientRect();
+                randomMotion(new RandomMotion(adBox, {
+                    width: bbox.width,
+                    height: bbox.height,
+                    angle: -40,
+                    minFactor: .2,
+                    maxFactor: .35
+                }));
+            }
+        }),
+        new Level({
+            name: "Spin",
+            cursors: 1000,
+            angle: 80,
+            scene: (elements, markObjective, markPenalty, randomMotion) => {
+                const { adBox, btn } = annoyingBox(elements, markObjective, markPenalty);
+                randomMotion(new RandomRoll(btn, {
+                    width: 300,
+                    height: 300,
+                    angle: 360,
+                    minFactor: .6,
+                    maxFactor: .8,
+                    rotationFactor: 0.2
+                }));
+
+                const bbox = document.body.getBoundingClientRect();
+                randomMotion(new RandomRoll(adBox, {
+                    width: bbox.width,
+                    height: bbox.height,
+                    angle: -40,
+                    minFactor: .2,
+                    maxFactor: .35,
+                    rotationFactor: 0.05
+                }));
+            },
+            onRender: () => {
+                document.querySelector(".touch-controls").classList.add("spin")
+            }
+        }),
+        new Level({
+            name: "Boundaries",
+            cursors: 1000,
+            angle: 5,
+            minFactor: 2,
+            maxFactor: 3,
+            hideCursor: true,
+            scene: (elements, markObjective, markPenalty, randomMotion) => {
+                const { adBox, btn } = annoyingBox(elements, markObjective, markPenalty);
+                randomMotion(new RandomMotion(btn, {
+                    width: 300,
+                    height: 300,
+                    angle: 360,
+                    minFactor: .6,
+                    maxFactor: .8
+                }));
+
+                const bbox = document.body.getBoundingClientRect();
+                randomMotion(new RandomRoll(adBox, {
+                    width: bbox.width,
+                    height: bbox.height,
+                    angle: -40,
+                    minFactor: .2,
+                    maxFactor: .35,
+                    rotationFactor: 0.15
+                }));
+            }
+        }),
+        new Level({
+            name: "Imagination",
+            cursors: 0,
+            hideCursor: true,
+            scene: (elements, markObjective, markPenalty) => {
+                const { adBox, btn } = annoyingBox(elements, markObjective, markPenalty);
+                randomPos(adBox);
+                randomPos(btn);
+                elements.push(adBox);
+            }
+        }),
+        new Level({
+            name: "Endscreen",
+            cursors: 300,
+            hideCursor: false,
+            angle: 0,
+            partyMode: true,
+            minFactor: .9,
+            maxFactor: 1.1,
+            scene: (elements, markObjective) => {
+                const btn = toHtml("<button class='btn big center'>You win!</button>");
+                elements.push(btn);
+                markObjective(btn);
+            }
+        })
+    ];
+
+    let currentLevel;
+    let isPhone = false;
+    let mouseMoves = 0;
+    function advanceLevel() {
+        levels[currentLevel]?.clean();
+        currentLevel++;
+        if (currentLevel >= levels.length) {
+            currentLevel = 0;
+        }
+
+        if (currentLevel > 2 && mouseMoves < 20) {
+            enablePhoneMode();
+        }
+
+        renderLevel();
+    }
+
+    function renderLevel() {
+        levels[currentLevel].render();
+
+        const levelDisplay = document.querySelector(".level-display");
+        levelDisplay.innerHTML = "Level " + (currentLevel + 1) + " - " + levels[currentLevel].name;
+    }
+
+
+    addEventListener('mousemove', (event) => {
+        mouseMoves++;
+        if (!isPhone) {
+            levels[currentLevel].updateCursors(event);
+        }
+    });
+
+    addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+    });
+
+    function resetGame() {
+        levels[currentLevel]?.clean();
+        currentLevel = 0;
+        renderLevel();
+    }
+
+    function enablePhoneMode() {
+        if (isPhone) { return; }
+
+        isPhone = true;
+        document.querySelector(".touch-controls").style.display = "block";
+        document.body.classList.add("mobile");
+
+        document.querySelector(".triangle.up").addEventListener("click",  (e) => {
+            levels[currentLevel].updateCursors({ movementX: 0, movementY: -15});
+        });
+        document.querySelector(".triangle.left").addEventListener("click",  (e) => {
+            levels[currentLevel].updateCursors({ movementX: -15, movementY: 0});
+        });
+        document.querySelector(".triangle.right").addEventListener("click",  (e) => {
+            levels[currentLevel].updateCursors({ movementX: 15, movementY: 0});
+        });
+        document.querySelector(".triangle.down").addEventListener("click",  (e) => {
+            levels[currentLevel].updateCursors({ movementX: 0, movementY: 15});
+        });
+        document.querySelector(".circle").addEventListener("click",  (e) => {
+            levels[currentLevel].click();
+        });
+    }
+
+    resetGame();
+</script>
+</body>
+</html>
